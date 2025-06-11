@@ -18,7 +18,7 @@ typedef struct ConvexHull{
 
 void printConvexHull(const ConvexHull& hull);
 double cross(const Point& p1, const Point& p2, const Point& p3);
-void convexHull_Androw(std::vector<Point>& points);
-void convexHull_Graham(std::vector<Point>& points);
+void convexHull_Androw(std::vector<Point>& points, ConvexHull& hull);
+void convexHull_Graham(std::vector<Point>& points, ConvexHull& hull);
 double polygonArea(const std::vector<Point>& poly);
 #endif
