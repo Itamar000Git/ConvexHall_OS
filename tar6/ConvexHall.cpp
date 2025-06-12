@@ -215,7 +215,7 @@ void* on_client_socket(int client_fd) {
             std::cerr << "Error receiving data." << std::endl;
         }
         close(client_fd);
-        reactor_ptr->removeFdFromReactor(client_fd); // Remove the client socket from the reactor
+        reactor_ptr->pushFdToRemove(client_fd); // Remove the client socket from the reactor
     } else {
         buf[nbytes] = '\0';
         std::istringstream lines(buf);

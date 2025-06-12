@@ -159,8 +159,12 @@ void handle_request(const std::string& request, int client_socket, ConvexHull& g
         response << "Unknown command: " << request << std::endl;
         response << "Available commands: Newgraph, CH, Newpoint, Removepoint, exit" << std::endl;
     }
-    std::string out = response.str();
-    send(client_socket, out.c_str(), out.size(), 0);
+       std::string out = response.str();
+    if (client_socket == 1) {
+        std::cout << out;
+    } else {
+        send(client_socket, out.c_str(), out.size(), 0);
+    }
 }
 
 int main() { 
