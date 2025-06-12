@@ -161,7 +161,7 @@ int main(int argc, char* argv[]) {
      std::cout<<std::endl;
 
     start = std::chrono::high_resolution_clock::now();
-    convexHull_Androw(points.points, hull2); // Calculate the convex hull using Graham's algorithm
+    convexHull_Graham(points.points, hull2); // Calculate the convex hull using Graham's algorithm
     end = std::chrono::high_resolution_clock::now();
     duration = end - start;
     std::cout << "Convex Hull calculated using Graham's algorithm in " << duration.count() << " seconds." << std::endl;

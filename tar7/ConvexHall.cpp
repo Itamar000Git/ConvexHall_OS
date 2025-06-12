@@ -137,6 +137,8 @@ void removePoint(ConvexHull& graph, std::istringstream& iss) {
     }
     printConvexHull(graph, std::cout);
 }
+
+
 void handle_request(const std::string& request, int client_socket, ConvexHull& graph,ConvexHull& hull) {
     std::istringstream iss(request);
     std::ostringstream response;
@@ -184,7 +186,7 @@ void handle_request(const std::string& request, int client_socket, ConvexHull& g
 int main() { 
     ConvexHull graph;
     ConvexHull hull;
-    //std::string cmd;
+    
     std::mutex graph_mutex; // Mutex for thread-safe access to the graph
     runningServer = true;
     std::cout << "Convex Hull Algorithm Implementation" << std::endl;
@@ -192,9 +194,6 @@ int main() {
     int sk, newfd;
     struct sockaddr_in serv_addr, cli_addr;
     socklen_t addrlen;
-    //char buf[BUFSIZE];
-    //int fdmax;
-   // fd_set master, read_fds;
 
     sk= socket(AF_INET, SOCK_STREAM, 0);
     if (sk < 0) {
@@ -218,12 +217,8 @@ int main() {
         return 1;
     }
 
-    // FD_ZERO(&master); // Initialize the master set
-    // FD_SET(sk, &master); // Add the listening socket to the master set
-    // FD_SET(0, &master);
-    // fdmax = std::max(sk,0); // Set the maximum file descriptor
     std::cout << "Server started on port " << PORT << std::endl;
-        // Thread for terminal input
+    // Thread for terminal input 
     std::thread([&]() {
         std::string line;
         while (runningServer && std::getline(std::cin, line)) {
@@ -244,10 +239,10 @@ int main() {
         std::cout << "New connection from " << inet_ntoa(cli_addr.sin_addr)
                   << ":" << ntohs(cli_addr.sin_port) << std::endl;
 
-         std::thread([newfd, &graph, &hull, &graph_mutex]() { // Handle client requests in a separate thread
+        std::thread([newfd, &graph, &hull, &graph_mutex](){ // Handle client requests in a separate thread
             char buf[BUFSIZE];
             while (true) {
-                int nbytes = recv(newfd, buf, sizeof(buf) - 1, 0);
+                int nbytes = recv(newfd, buf, sizeof(buf) - 1, 0);  
                 if (nbytes <= 0) {
                     if (nbytes == 0) {
                         std::cout << "Connection closed by client." << std::endl;
