@@ -1,7 +1,10 @@
-#include "Reactor.hpp"
+#include "ReactorProactor.hpp"
 #include <sys/select.h>
 #include <unistd.h>
 #include <iostream>
+#include <atomic>
+#include <netinet/in.h>
+#include <string.h>
 
 
     Reactor::Reactor():running(false){
@@ -96,4 +99,64 @@ void Reactor::startReactor() {
    
 
 
-  
+
+    Proactor::Proactor():args(nullptr){
+    }
+    Proactor::~Proactor(){
+
+    }
+
+
+pthread_t Proactor::startProactor (int sk, proactorFunc func){
+   args = new ProactorArgs{sk, func, new std::atomic<bool>(true)};// Create a new ProactorArgs instance with the provided socket and function
+    pthread_t tid;
+    pthread_create(&tid, nullptr, proactor_main_loop, args);// Create a new thread that runs the proactor main loop
+    return tid;
+}   
+
+
+int Proactor::stopProactor(pthread_t tid) {
+   if (args && args->running) {// Check if args is not null and running is true
+        *(args->running) = false;// Set running to false to signal the proactor thread to stop
+        
+        int sock = socket(AF_INET, SOCK_STREAM, 0);// Create a socket to wake up the proactor thread
+        if (sock >= 0) {
+            sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(9034);
+            addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            memset(&(addr.sin_zero), '\0', 8);
+            connect(sock, (struct sockaddr*)&addr, sizeof(addr));// Connect to the socket to wake up the proactor thread
+            close(sock);
+        }
+    }
+    pthread_join(tid, nullptr);// Wait for the proactor thread to finish
+    args = nullptr;
+    return 0;
+
+}
+
+void* proactor_main_loop(void* arg) {
+    ProactorArgs* args = static_cast<ProactorArgs*>(arg);// Cast the argument to ProactorArgs
+    int sk = args->sk;
+    proactorFunc func = args->func;
+    std::atomic<bool>* running = args->running;
+
+    while (*running) {// Main loop of the proactor
+        sockaddr_in cli_addr;
+        socklen_t addrlen = sizeof(cli_addr);
+        int newfd = accept(sk, (struct sockaddr*)&cli_addr, &addrlen);// Accept a new connection on the socket
+        if (newfd < 0) {
+            if (*running)
+                perror("accept");
+            continue;
+        }
+        std::thread([func, newfd]() {// Create a new thread to handle the accepted connection
+            func((void*)(intptr_t)newfd);
+            close(newfd);
+        }).detach();
+    }
+    delete running;
+    delete args;
+    return nullptr;
+}

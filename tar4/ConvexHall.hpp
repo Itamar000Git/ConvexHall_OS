@@ -1,6 +1,7 @@
 #ifndef CONVEXHALL_HPP
 #define CONVEXHALL_HPP
 #include <vector>
+#include <iostream>
 typedef struct Point{
     double x;
     double y;
