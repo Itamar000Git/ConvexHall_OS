@@ -1,6 +1,7 @@
 #ifndef CONVEXHALL_HPP
 #define CONVEXHALL_HPP
 #include <vector>
+#include <set>
 typedef struct Point{
     double x;
     double y;
@@ -92,5 +93,16 @@ void* on_stdin(int fd);
  */
 void* on_client_socket(int client_fd);
 
+/**
+ * @brief Thread function to wait for changes in the convex hull area.
+ * @param tmp Pointer to temporary data (not used).
+ * @return A pointer to the result (nullptr).
+ */
 void* wait_for_CH_area_change(void * tmp);
+
+/**
+ * @brief Close all client sockets and clear the set of client sockets.
+ * @param client_sockets The set of client socket file descriptors to close.
+ */
+void close_all_clients(std::set<int>& client_sockets);
 #endif

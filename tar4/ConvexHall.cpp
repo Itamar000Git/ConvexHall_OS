@@ -85,6 +85,8 @@ void printConvexHull(const ConvexHull& hull, std::ostream& os) {
 
 void readPoints(ConvexHull& graph, int n, std::istringstream& iss) {
     graph.points.clear();
+    graph.area = 0.0;
+  
     graph.size = n;
     for (int i = 0; i < n; ++i) {
     //std::cout << "Enter coordinates for point " << i + 1 << " (x y): ";
@@ -130,6 +132,8 @@ void handle_request(const std::string& request, int client_socket, ConvexHull& g
     iss >> cmd;
     if (cmd == "Newgraph") {
         int n;
+        hull.points.clear();
+        hull.area = 0.0;
         iss >> n;
         //ConvexHull graph;
         readPoints(graph, n, iss);

@@ -11,6 +11,8 @@
 #include <condition_variable>
 #include "ConvexHall.hpp"
 #include "../tar5_8/ReactorProactor.hpp"
+#include <set>
+
 #define PORT 9034
 #define MAX_CLIENTS 10
 #define BUFSIZE 4096
@@ -23,7 +25,7 @@ ConvexHull hull;
 std::mutex graph_mutex;
 bool runningServer = true;
 bool area_updated=false;
-
+std::set<int> client_sockets;
 
 double polygonArea(const ConvexHull& poly) {
     double area = 0;
@@ -75,6 +77,10 @@ void printConvexHull(const ConvexHull& hull, std::ostream& os) {
 
 void readPoints(ConvexHull& graph, int n, std::istringstream& iss) {
     graph.points.clear();
+    graph.area = 0.0;
+    hull.treshhold=false;
+    hull.points.clear();
+    hull.area = 0.0;
     graph.size = n;
     for (int i = 0; i < n; ++i) {
     //std::cout << "Enter coordinates for point " << i + 1 << " (x y): ";
@@ -152,6 +158,7 @@ void handle_request(const std::string& request, int client_socket, ConvexHull& g
         if (client_socket == 1) { // If the request is from stdin (client_socket == 1), stop the reactor
             std::cout << "Stopping reactor..." << std::endl;
             runningServer= false; // Set the running flag to false
+            close_all_clients(client_sockets);
         } 
     } else {
         response << "Unknown command: " << request << std::endl;
@@ -169,7 +176,8 @@ void handle_request(const std::string& request, int client_socket, ConvexHull& g
 
 void* on_stdin(void* fd) {
     std::string line;
-    while (true) {
+    //client_sockets.insert(1); // Add the stdin socket to the set of client sockets
+    while (runningServer) {
         if (std::getline(std::cin, line)) {// Read a line from stdin
             handle_request(line, 1, graph, hull); // Handle the request from stdin
             if (line == "exit") break; // If the command is "exit", break the loop
@@ -177,13 +185,16 @@ void* on_stdin(void* fd) {
             std::cerr << "Error or EOF on stdin." << std::endl;
         }
     }
+
     return nullptr;
 }
 
 void* on_client_socket(void* tmp) {
     int client_fd = (intptr_t)tmp;
     char buf[BUFSIZE];
-    while (true) {
+
+    client_sockets.insert(client_fd); // Add the client socket to the set of client sockets
+    while (runningServer) {
         int nbytes = recv(client_fd, buf, sizeof(buf) - 1, 0);// Receive data from the client
         if (nbytes <= 0) {
             if (nbytes == 0) {
@@ -208,11 +219,11 @@ void* on_client_socket(void* tmp) {
 
 void* wait_for_CH_area_change(void * tmp){
      while (runningServer) {
-       pthread_mutex_lock(&area_mutex);
-        while (!area_updated) {
-            pthread_cond_wait(&cond, &area_mutex);
+       pthread_mutex_lock(&area_mutex); // Lock the mutex to protect the area_updated flag
+        while (!area_updated) { // Wait for the area to be updated
+            pthread_cond_wait(&cond, &area_mutex); // Wait for the condition variable to be signaled
         }
-        if(hull.treshhold==false && hull.area >=100 ){
+        if(hull.treshhold==false && hull.area >=100 ){ 
             hull.treshhold=true;
             std::cout << "Convex Hull Area has reached the threshold of 100. Area: " << hull.area << std::endl;
             std::cout << "Convex Hull Points:\n";
@@ -223,11 +234,19 @@ void* wait_for_CH_area_change(void * tmp){
         }
 
           area_updated = false;
-          pthread_mutex_unlock(&area_mutex);
+          pthread_mutex_unlock(&area_mutex);// Unlock the mutex after processing the area update
     }
 
   
     return nullptr;
+}
+
+void close_all_clients(std::set<int>& client_sockets) {
+    for (int fd : client_sockets) { // Close all client sockets
+        shutdown(fd, SHUT_RDWR); 
+        close(fd);
+    }
+    client_sockets.clear();
 }
 
 int main() {
@@ -253,6 +272,7 @@ int main() {
         std::cerr << "Error listening on socket." << std::endl;
         return 1;
     }
+
     hull.treshhold=false;
     Proactor proactor;// Create a Proactor instance
 
@@ -271,15 +291,16 @@ int main() {
         sleep(1);
     }
     pthread_mutex_lock(&area_mutex);
-    pthread_cond_signal(&cond);
+    pthread_cond_signal(&cond);// Signal the condition variable to wake up the waiting thread
     pthread_mutex_unlock(&area_mutex);
 
 
     proactor.stopProactor(server_thread);// Stop the Proactor and wait for the server thread to finish
     pthread_join(stdin_thread, nullptr);// Wait for the stdin thread to finish
     pthread_join(server_thread, nullptr);// Wait for the server thread to finish
-    pthread_join(cond_var_t, nullptr);// Wait for the stdin thread to finish
-
+   
+    
+    
     close(sk);// Close the server socket
     return 0;
 }
