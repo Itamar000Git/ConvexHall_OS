@@ -75,7 +75,7 @@ void Reactor::startReactor() {
     fdMap.clear();
 }
 
-        // // adds fd to Reactor (for reading) ; returns 0 on success. 
+    // adds fd to Reactor (for reading) ; returns 0 on success. 
     int  Reactor::addFdToReactor( int fd, reactorFunc func){
         std::lock_guard<std::mutex> lock(fd_mutex); // Lock the mutex to ensure thread safety
         fdMap[fd] = func; // Associate the fd with the function
@@ -90,7 +90,7 @@ void Reactor::startReactor() {
     void Reactor::processRemovals() {
         std::lock_guard<std::mutex> lock(fd_mutex);
         for (int fd : fds_to_remove) {
-            fdMap.erase(fd); // מחיקה ישירה, בלי לקרוא לפונקציה שנועלת שוב!
+            fdMap.erase(fd); 
             
             std::cout << "Removed fd " << fd << " from reactor." << std::endl;
         }
