@@ -2,7 +2,7 @@
 C = g++
 #CFLAGS = -c -g -Wall -fprofile-arcs -ftest-coverage
 #LDFLAGS = -g -fprofile-arcs -ftest-coverage -lgcov
-CFLAGS = -c -g -Wall
+CFLAGS = -c -g -pg -Wall
 LDFLAGS = -g
 COVERAGE_DIR = coverage_files
 
@@ -14,7 +14,7 @@ TARGET = ConvexHall
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(C) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+	$(C) -o $(TARGET) -pg $(OBJECTS) $(LDFLAGS)
 
 ConvexHall.o: ConvexHall.cpp ConvexHall.hpp
 	$(C) $(CFLAGS) ConvexHall.cpp -o ConvexHall.o
@@ -29,3 +29,7 @@ coverage: $(TARGET)
 	mv *.gcda $(COVERAGE_DIR) || true
 	mv *.gcno $(COVERAGE_DIR) || true
 	mv *.gcov $(COVERAGE_DIR) || true
+
+gprof: $(TARGET)
+	./$(TARGET)
+	gprof $(TARGET) gmon.out > analysis.txt
